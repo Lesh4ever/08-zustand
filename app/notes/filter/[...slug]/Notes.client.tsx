@@ -2,7 +2,6 @@
 
 import { fetchNotes } from "@/lib/api";
 import NoteList from "@/components/NoteList/NoteList";
-import NoteModal from "@/components/Modal/Modal";
 import Pagination from "@/components/Pagination/Pagination";
 import SearchBox from "@/components/SearchBox/SearchBox";
 import css from "./NotesPage.module.css";
@@ -10,7 +9,7 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useState } from "react";
 import { useDebounce } from "use-debounce";
 import { Note } from "@/types/note";
-import NoteForm from "@/components/NoteForm/NoteForm";
+import { useRouter } from "next/navigation";
 
 interface NotesClientProps {
   initialResponse: {
@@ -27,7 +26,6 @@ export default function NotesClient({
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [query, setQuery] = useState<string>("");
   const [debouncedQuery] = useDebounce<string>(query, 1000);
-  const [modalOpen, setModalOpen] = useState<boolean>(false);
 
   const loadNotes = useQuery({
     queryKey: ["Notes", debouncedQuery, currentPage, tag],
@@ -35,23 +33,19 @@ export default function NotesClient({
       fetchNotes({ query: debouncedQuery, page: currentPage, tag }),
     initialData: initialResponse,
     placeholderData: keepPreviousData,
-    refetchOnMount: false,
+    refetchOnMount: true,
   });
 
-  const modalOpenFn = (): void => {
-    setModalOpen(true);
-  };
-
-  const modalCloseFn = (): void => {
-    setModalOpen(false);
-  };
+  const router = useRouter();
+  const createNotePage = () => router.push("/notes/action/create");
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
   const onChangeQuery = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setQuery(event.target.value);
+    const query = event.target.value;
+    setQuery(query);
     setCurrentPage(1);
   };
 
@@ -70,16 +64,11 @@ export default function NotesClient({
             currentPage={currentPage}
           />
         )}
-        <button className={css.button} onClick={modalOpenFn}>
+        <button type="button" className={css.button} onClick={createNotePage}>
           Create note +
         </button>
       </header>
       {loadNotes.isSuccess && <NoteList notes={loadNotes.data.notes} />}
-      {modalOpen && (
-        <NoteModal onClose={modalCloseFn}>
-          <NoteForm onClose={modalCloseFn} />
-        </NoteModal>
-      )}
     </div>
   );
 }

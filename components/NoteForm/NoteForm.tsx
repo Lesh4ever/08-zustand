@@ -26,17 +26,19 @@ export default function NoteForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const { draft, setDraft, clearDraft } = useNoteDraftStore();
+
   const addNewNote = useMutation({
     mutationFn: (newNoteData: NoteFormData) => createNote(newNoteData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["Notes"] });
       clearDraft();
       router.back();
-      localStorage.removeItem("note draft");
+    },
+    onSettled: () => {
+      setIsSubmitting(false);
     },
   });
-
-  const { draft, setDraft, clearDraft } = useNoteDraftStore();
 
   const handleChange = (
     event: React.ChangeEvent<
@@ -49,16 +51,10 @@ export default function NoteForm() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrors({});
-    const formData = new FormData(event.currentTarget);
     const values: NoteFormData = {
-      title: formData.get("title") as string,
-      content: formData.get("content") as string,
-      tag: formData.get("tag") as
-        | "Todo"
-        | "Work"
-        | "Personal"
-        | "Meeting"
-        | "Shopping",
+      title: draft.title,
+      content: draft.content,
+      tag: draft.tag,
     };
 
     try {
@@ -88,7 +84,7 @@ export default function NoteForm() {
           id="title"
           type="text"
           name="title"
-          defaultValue={draft?.title}
+          value={draft.title}
           className={css.input}
           onChange={handleChange}
         />
@@ -98,7 +94,7 @@ export default function NoteForm() {
       <div className={css.formGroup}>
         <label htmlFor="content">Content</label>
         <textarea
-          defaultValue={draft?.content}
+          value={draft.content}
           id="content"
           name="content"
           rows={8}
@@ -111,7 +107,7 @@ export default function NoteForm() {
       <div className={css.formGroup}>
         <label htmlFor="tag">Tag</label>
         <select
-          defaultValue={draft?.tag}
+          value={draft.tag}
           id="tag"
           name="tag"
           className={css.select}

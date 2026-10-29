@@ -8,21 +8,13 @@ import css from "./NotesPage.module.css";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useState } from "react";
 import { useDebounce } from "use-debounce";
-import { Note } from "@/types/note";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface NotesClientProps {
-  initialResponse: {
-    notes: Note[];
-    totalPages: number;
-  };
   tag: string | undefined;
 }
 
-export default function NotesClient({
-  initialResponse,
-  tag,
-}: NotesClientProps) {
+export default function NotesClient({ tag }: NotesClientProps) {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [query, setQuery] = useState<string>("");
   const [debouncedQuery] = useDebounce<string>(query, 1000);
@@ -31,13 +23,9 @@ export default function NotesClient({
     queryKey: ["Notes", debouncedQuery, currentPage, tag],
     queryFn: () =>
       fetchNotes({ query: debouncedQuery, page: currentPage, tag }),
-    initialData: initialResponse,
     placeholderData: keepPreviousData,
-    refetchOnMount: true,
+    staleTime: 60 * 1000,
   });
-
-  const router = useRouter();
-  const createNotePage = () => router.push("/notes/action/create");
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -57,6 +45,7 @@ export default function NotesClient({
     <div className={css.app}>
       <header className={css.toolbar}>
         <SearchBox onChange={onChangeQuery} value={query} />
+
         {loadNotes.isSuccess && loadNotes.data.totalPages > 1 && (
           <Pagination
             pageCount={loadNotes.data.totalPages}
@@ -64,9 +53,10 @@ export default function NotesClient({
             currentPage={currentPage}
           />
         )}
-        <button type="button" className={css.button} onClick={createNotePage}>
+
+        <Link href="/notes/action/create" className={css.button}>
           Create note +
-        </button>
+        </Link>
       </header>
       {loadNotes.isSuccess && <NoteList notes={loadNotes.data.notes} />}
     </div>
